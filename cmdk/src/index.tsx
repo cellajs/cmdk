@@ -1,8 +1,8 @@
 import * as RadixDialog from '@radix-ui/react-dialog'
+import { useId } from '@radix-ui/react-id'
+import { Primitive } from '@radix-ui/react-primitive'
 import * as React from 'react'
 import { commandScore } from './command-score'
-import { Primitive } from '@radix-ui/react-primitive'
-import { useId } from '@radix-ui/react-id'
 
 type Children = { children?: React.ReactNode }
 type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
@@ -30,6 +30,13 @@ type DialogProps = RadixDialog.DialogProps &
     contentClassName?: string
     /** Provide a custom element the Dialog should portal into. */
     container?: HTMLElement
+  }
+
+type GridProps = ListProps &
+  Children &
+  DivProps & {
+    /** Direction of columns for the grid */
+    direction: 'vertical' | 'horizontal'
   }
 type ListProps = Children &
   DivProps & {
@@ -562,6 +569,9 @@ const Command = React.forwardRef<HTMLDivElement, CommandProps>((props, forwarded
     }
   }
 
+  const gridEl = listInnerRef.current?.closest('[data-direction]')
+  const gridDirection = gridEl ? gridEl.getAttribute('data-direction') : undefined
+
   return (
     <Primitive.div
       ref={forwardedRef}
@@ -573,28 +583,54 @@ const Command = React.forwardRef<HTMLDivElement, CommandProps>((props, forwarded
 
         if (!e.defaultPrevented) {
           switch (e.key) {
+            // emacs keybind next
             case 'n':
+            // vim keybind down
             case 'j': {
-              // vim keybind down
               if (vimBindings && e.ctrlKey) {
                 next(e)
               }
               break
             }
-            case 'ArrowDown': {
-              next(e)
+            case 'ArrowLeft': {
+              if (gridDirection === 'horizontal') {
+                updateSelectedByGroup(-1)
+              } else {
+                prev(e)
+              }
               break
             }
+            case 'ArrowRight': {
+              if (gridDirection === 'horizontal') {
+                updateSelectedByGroup(1)
+              } else {
+                next(e)
+              }
+              break
+            }
+            case 'ArrowDown': {
+              if (gridDirection === 'vertical') {
+                updateSelectedByGroup(1)
+              } else {
+                next(e)
+              }
+              break
+            }
+            // emacs keybind previous
             case 'p':
+            // vim keybind up
             case 'k': {
-              // vim keybind up
               if (vimBindings && e.ctrlKey) {
                 prev(e)
               }
               break
             }
             case 'ArrowUp': {
-              prev(e)
+              if (gridDirection === 'vertical') {
+                updateSelectedByGroup(-1)
+              } else {
+                prev(e)
+              }
               break
             }
             case 'Home': {
@@ -831,6 +867,7 @@ const List = React.forwardRef<HTMLDivElement, ListProps>((props, forwardedRef) =
   const { children, label = 'Suggestions', ...etc } = props
   const ref = React.useRef<HTMLDivElement>(null)
   const height = React.useRef<HTMLDivElement>(null)
+
   const context = useCommand()
 
   React.useEffect(() => {
@@ -867,6 +904,50 @@ const List = React.forwardRef<HTMLDivElement, ListProps>((props, forwardedRef) =
         </div>
       ))}
     </Primitive.div>
+  )
+})
+
+/**
+ * Contains `Item`, `Group`, and `Separator`.
+ * Use the `--cmdk-list-height` CSS variable to animate height based on the number of results.
+ */
+const Grid = React.forwardRef<HTMLDivElement, GridProps>((props, forwardedRef) => {
+  const { children, direction, ...etc } = props
+
+  // Combine the mapping into a single function
+  const { groups, others } = React.Children.toArray(children).reduce(
+    (acc, child) => {
+      if (React.isValidElement(child)) {
+        if (child.type === Group) {
+          acc.groups.push(child)
+        } else {
+          acc.others.push(child)
+        }
+      }
+      return acc
+    },
+    { groups: [], others: [] },
+  )
+
+  const columns = groups.length
+  // Calculate the number of columns based on the provided prop
+  const gridTemplateColumns = direction === 'horizontal' ? `repeat(${columns}, 1fr)` : undefined
+  const gridTemplateRows = direction === 'vertical' ? `repeat(${columns}, 1fr)` : undefined
+
+  return (
+    <List {...etc} cmdk-grid="" data-columns={columns} data-direction={direction} ref={forwardedRef}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns,
+          gridTemplateRows,
+          gap: '8px', // Add spacing between items
+        }}
+      >
+        {groups}
+      </div>
+      {others}
+    </List>
   )
 })
 
@@ -923,6 +1004,7 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>((props, forwarded
 
 const pkg = Object.assign(Command, {
   List,
+  Grid,
   Item,
   Input,
   Group,
@@ -932,19 +1014,19 @@ const pkg = Object.assign(Command, {
   Loading,
 })
 
-export { useCmdk as useCommandState }
-export { pkg as Command }
-export { defaultFilter }
+export { pkg as Command, useCmdk as useCommandState }
 
-export { Command as CommandRoot }
-export { List as CommandList }
-export { Item as CommandItem }
-export { Input as CommandInput }
-export { Group as CommandGroup }
-export { Separator as CommandSeparator }
-export { Dialog as CommandDialog }
-export { Empty as CommandEmpty }
-export { Loading as CommandLoading }
+export {
+  Dialog as CommandDialog,
+  Empty as CommandEmpty,
+  Group as CommandGroup,
+  Input as CommandInput,
+  Item as CommandItem,
+  List as CommandList,
+  Loading as CommandLoading,
+  Command as CommandRoot,
+  Separator as CommandSeparator,
+}
 
 /**
  *
