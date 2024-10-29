@@ -165,10 +165,6 @@
       background: var(--gray4);
     }
 
-    &:first-child {
-      margin-top: 8px;
-    }
-
     & + [cmdk-item] {
       margin-top: 4px;
     }
@@ -194,16 +190,6 @@
     transition: 100ms ease;
     transition-property: height;
     padding-bottom: 40px;
-
-    & > [cmdk-list-sizer] {
-      // display: grid;
-      // grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-  }
-
-  [cmdk-group-items] {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   [cmdk-raycast-open-trigger],
@@ -281,10 +267,6 @@
     width: 100%;
     background: var(--gray5);
     margin: 4px 0;
-  }
-
-  *:not([hidden]) + [cmdk-group] {
-    margin-top: 8px;
   }
 
   [cmdk-group-heading] {

@@ -1,7 +1,7 @@
 import * as RadixDialog from '@radix-ui/react-dialog'
+import { Primitive } from '@radix-ui/react-primitive'
 import * as React from 'react'
 import { commandScore } from './command-score'
-import { Primitive } from '@radix-ui/react-primitive'
 
 type Children = { children?: React.ReactNode }
 type DivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>
@@ -34,8 +34,8 @@ type DialogProps = RadixDialog.DialogProps &
 type GridProps = ListProps &
   Children &
   DivProps & {
-    /** Amount of columns for the grid */
-    columns: number
+    /** Direction of columns for the grid */
+    direction: 'vertical' | 'horizontal'
   }
 type ListProps = Children &
   DivProps & {
@@ -556,35 +556,8 @@ const Command = React.forwardRef<HTMLDivElement, CommandProps>((props, forwarded
     }
   }
 
-  const gridEl = listInnerRef.current?.closest('[data-columns]')
-  const gridColumns = gridEl ? Number(gridEl.getAttribute('data-columns')) : undefined
-
-  const prevRow = (e: React.KeyboardEvent) => {
-    e.preventDefault()
-    const selected = getSelectedItem()
-    const items = getValidItems()
-    const index = items.findIndex((item) => item === selected)
-    const newIndex = index - gridColumns
-
-    if (newIndex >= 0) {
-      updateSelectedToIndex(newIndex)
-    }
-  }
-
-  const nextRow = (e: React.KeyboardEvent) => {
-    e.preventDefault()
-    const selected = getSelectedItem()
-    const items = getValidItems()
-    const index = items.findIndex((item) => item === selected)
-    const newIndex = index + gridColumns
-
-    // TODO: should go to the last item of uneven columns
-    // TODO: should handle grouping correctly
-
-    if (newIndex < items.length) {
-      updateSelectedToIndex(newIndex)
-    }
-  }
+  const gridEl = listInnerRef.current?.closest('[data-direction]')
+  const gridDirection = gridEl ? gridEl.getAttribute('data-direction') : undefined
 
   return (
     <Primitive.div
@@ -607,20 +580,24 @@ const Command = React.forwardRef<HTMLDivElement, CommandProps>((props, forwarded
               break
             }
             case 'ArrowLeft': {
-              if (gridColumns) {
+              if (gridDirection === 'horizontal') {
+                updateSelectedByGroup(-1)
+              } else {
                 prev(e)
               }
               break
             }
             case 'ArrowRight': {
-              if (gridColumns) {
+              if (gridDirection === 'horizontal') {
+                updateSelectedByGroup(1)
+              } else {
                 next(e)
               }
               break
             }
             case 'ArrowDown': {
-              if (gridColumns) {
-                nextRow(e)
+              if (gridDirection === 'vertical') {
+                updateSelectedByGroup(1)
               } else {
                 next(e)
               }
@@ -636,12 +613,11 @@ const Command = React.forwardRef<HTMLDivElement, CommandProps>((props, forwarded
               break
             }
             case 'ArrowUp': {
-              if (gridColumns) {
-                prevRow(e)
+              if (gridDirection === 'vertical') {
+                updateSelectedByGroup(-1)
               } else {
                 prev(e)
               }
-
               break
             }
             case 'Home': {
@@ -923,11 +899,41 @@ const List = React.forwardRef<HTMLDivElement, ListProps>((props, forwardedRef) =
  * Use the `--cmdk-list-height` CSS variable to animate height based on the number of results.
  */
 const Grid = React.forwardRef<HTMLDivElement, GridProps>((props, forwardedRef) => {
-  const { children, columns, ...etc } = props
+  const { children, direction, ...etc } = props
+
+  // Combine the mapping into a single function
+  const { groups, others } = React.Children.toArray(children).reduce(
+    (acc, child) => {
+      if (React.isValidElement(child)) {
+        if (child.type === Group) {
+          acc.groups.push(child)
+        } else {
+          acc.others.push(child)
+        }
+      }
+      return acc
+    },
+    { groups: [], others: [] },
+  )
+
+  const columns = groups.length
+  // Calculate the number of columns based on the provided prop
+  const gridTemplateColumns = direction === 'horizontal' ? `repeat(${columns}, 1fr)` : undefined
+  const gridTemplateRows = direction === 'vertical' ? `repeat(${columns}, 1fr)` : undefined
 
   return (
-    <List {...etc} ref={forwardedRef} cmdk-grid="" data-columns={columns}>
-      {children}
+    <List {...etc} cmdk-grid="" data-columns={columns} data-direction={direction} ref={forwardedRef}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns,
+          gridTemplateRows,
+          gap: '8px', // Add spacing between items
+        }}
+      >
+        {groups}
+      </div>
+      {others}
     </List>
   )
 })
@@ -995,18 +1001,19 @@ const pkg = Object.assign(Command, {
   Loading,
 })
 
-export { useCmdk as useCommandState }
-export { pkg as Command }
+export { pkg as Command, useCmdk as useCommandState }
 
-export { Command as CommandRoot }
-export { List as CommandList }
-export { Item as CommandItem }
-export { Input as CommandInput }
-export { Group as CommandGroup }
-export { Separator as CommandSeparator }
-export { Dialog as CommandDialog }
-export { Empty as CommandEmpty }
-export { Loading as CommandLoading }
+export {
+  Dialog as CommandDialog,
+  Empty as CommandEmpty,
+  Group as CommandGroup,
+  Input as CommandInput,
+  Item as CommandItem,
+  List as CommandList,
+  Loading as CommandLoading,
+  Command as CommandRoot,
+  Separator as CommandSeparator,
+}
 
 /**
  *

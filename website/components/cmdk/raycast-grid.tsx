@@ -1,6 +1,5 @@
-import * as React from 'react'
 import { Command } from 'cmdk'
-import { useTheme } from 'next-themes'
+import * as React from 'react'
 
 // Alphabet
 const list = `ABCDEFGHIJKLMNOPQRSTUVWXYZ`.split('')
@@ -35,7 +34,7 @@ export function RaycastCMDKGrid() {
         <div cmdk-raycast-top-shine="" />
         <Command.Input ref={inputRef} autoFocus placeholder="Search for apps and commands..." />
         <hr cmdk-raycast-loader="" />
-        <Command.Grid columns={5} ref={listRef}>
+        <Command.Grid direction="horizontal" ref={listRef}>
           <Command.Empty>No results found.</Command.Empty>
           <Command.Group heading="Alphabet">
             {list.map((item) => {

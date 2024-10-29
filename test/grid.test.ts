@@ -7,7 +7,7 @@ test.describe('grid', async () => {
 
   test('correct attributes are applied', async ({ page }) => {
     await expect(page.locator(`[cmdk-grid]`)).toBeDefined()
-    await expect(page.locator(`[data-columns]`)).toBeDefined()
+    await expect(page.locator(`[data-direction]`)).toBeDefined()
   })
 
   test('arrow up/down changes selected item', async ({ page }) => {
